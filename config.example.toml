@@ -1,0 +1,113 @@
+#:schema ./kanami.schema.json
+# kanami example config. See docs/config-spec.md for the full syntax.
+#
+# Copy it to ~/.config/kanami/config.toml and edit as needed; `kanami run` reloads it automatically on save.
+# Editor completion: run `kanami schema > ~/.config/kanami/kanami.schema.json`;
+# editors with Taplo support (such as VS Code with Even Better TOML) then complete key names and validate live.
+# Use `kanami keys` to list all key names and `kanami test` to run the tests at the end.
+#
+# Emergency stop: hold left Control + Space + Esc together to disable all remaps at once; press again to resume.
+
+[settings]
+tap_timeout = 200   # Time limit for telling tap from hold (milliseconds)
+combo_timeout = 50  # Window for detecting simultaneous presses (milliseconds)
+
+# Stage one: layout fixes; runs first and is always in effect
+[remap]
+right_option = "hyper"   # Right ⌥ as Hyper (⌃⌥⇧⌘)
+
+# Caps Lock: tap for Esc, hold for Ctrl
+[[rule]]
+from = "caps_lock"
+tap = "escape"
+hold = "left_control"
+
+# Hyper + T opens Terminal
+[[rule]]
+from = "hyper+t"
+run = "open -a Terminal"
+
+# Rule group: rules in a group share conditions and the switch (enabled = false turns off the whole group; a single rule can be turned off the same way)
+[[group]]
+name = "In Terminal"
+when.app = ["com.apple.Terminal", "com.googlecode.iterm2"]
+
+# ⌘K clears the screen
+[[group.rule]]
+from = "cmd+k"
+to = "ctrl+l"
+
+# Hold Space to enter the navigation layer; tapping still types a space.
+# Cost: a lone Space is sent only on release, and holding it does not repeat spaces. If that bothers you, pick a key you rarely tap.
+[layer.nav]
+hold = "space"
+map = { h = "left", j = "down", k = "up", l = "right", u = "cmd+left", o = "cmd+right" }
+
+# Pressing D and F together is Esc
+[[combo]]
+keys = ["d", "f"]
+to = "escape"
+
+# ---- Tests: +key presses, -key releases, a bare key name presses then releases, @300 waits 300 ms ----
+
+[[test]]
+name = "Caps Lock tap is Esc"
+input = "caps_lock"
+expect = "escape"
+
+[[test]]
+name = "Caps Lock hold is Ctrl"
+input = "+caps_lock c -caps_lock"
+expect = "ctrl+c"
+
+[[test]]
+name = "In Terminal ⌘K becomes ⌃L, and ⌘ is restored after release"
+app = "com.apple.Terminal"
+input = "cmd+k"
+expect = "+cmd -cmd ctrl+l +cmd -cmd"
+
+[[test]]
+name = "⌘K is unchanged in other apps"
+app = "com.apple.Safari"
+input = "cmd+k"
+expect = "cmd+k"
+
+[[test]]
+name = "Space does not trigger the navigation layer during fast typing"
+input = "+space +b -space -b"
+expect = "space b"
+
+[[test]]
+name = "A Space pressed mid-typing is sent immediately and does not enter the navigation layer"
+input = "a +space j -space"
+expect = "a +space j -space"
+
+[[test]]
+name = "Holding Space enters the navigation layer"
+input = "+space @300 j -space"
+expect = "down"
+
+[[test]]
+name = "Space held a bit long without using the navigation layer is still a space on release"
+input = "+space @400 -space"
+expect = "space"
+
+[[test]]
+name = "A full J press while holding Space also counts as entering the navigation layer"
+input = "+space j -space"
+expect = "down"
+
+[[test]]
+name = "⌘Space (Spotlight) and ⌃Space (switch input method) do not enter the navigation layer"
+input = "+cmd +space @300 -space -cmd +ctrl space -ctrl"
+expect = "cmd+space ctrl+space"
+
+[[test]]
+name = "Pressing D and F together is Esc"
+input = "+d +f -d -f"
+expect = "escape"
+
+[[test]]
+name = "D alone is unaffected"
+input = "d"
+expect = "d"
