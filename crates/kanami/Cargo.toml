@@ -1,0 +1,28 @@
+[package]
+name = "kanami"
+description = "A small, fast, programmable keyboard remapper"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[features]
+default = ["script"]
+# Luau script plugin. Turning it off makes the binary smaller (about 1.3 MB), but [script] and call become unavailable
+script = ["dep:kanami-script"]
+
+[dependencies]
+kanami-core.workspace = true
+kanami-config.workspace = true
+kanami-i18n.workspace = true
+kanami-ipc.workspace = true
+kanami-script = { workspace = true, optional = true }
+serde_json.workspace = true
+
+[target.'cfg(target_os = "macos")'.dependencies]
+kanami-macos.workspace = true
+tray-icon.workspace = true
+
+[target.'cfg(windows)'.dependencies]
+kanami-windows.workspace = true
+tray-icon.workspace = true
