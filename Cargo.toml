@@ -1,0 +1,32 @@
+[workspace]
+resolver = "3"
+members = ["crates/*", "apps/settings/src-tauri"]
+# The settings window (Tauri) needs the frontend built first, so build it separately: see apps/settings/README.md
+default-members = ["crates/*"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.90"
+license = "MIT OR Apache-2.0"
+
+[workspace.dependencies]
+kanami-core = { path = "crates/kanami-core" }
+kanami-i18n = { path = "crates/kanami-i18n" }
+kanami-ipc = { path = "crates/kanami-ipc" }
+kanami-config = { path = "crates/kanami-config" }
+kanami-macos = { path = "crates/kanami-macos" }
+kanami-script = { path = "crates/kanami-script" }
+kanami-windows = { path = "crates/kanami-windows" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tray-icon = { version = "0.26", default-features = false }
+toml = "0.9"
+
+# Small and fast: full LTO, a single codegen unit, abort on panic, stripped symbols
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = true
