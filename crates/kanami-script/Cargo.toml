@@ -1,0 +1,13 @@
+[package]
+name = "kanami-script"
+description = "Luau script plugin host for kanami"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+kanami-core.workspace = true
+kanami-config.workspace = true
+kanami-i18n.workspace = true
+mlua = { version = "0.12", features = ["luau"] }
