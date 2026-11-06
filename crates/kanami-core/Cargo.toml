@@ -1,0 +1,10 @@
+[package]
+name = "kanami-core"
+description = "Platform-independent key event model and rule engine"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+kanami-i18n.workspace = true
