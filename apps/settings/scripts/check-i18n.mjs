@@ -1,11 +1,11 @@
 // Checks the settings window's text: every t(), tn() and N_() string needs a translation with the
 // same placeholders, and Chinese may only appear in the locale files.
 import { readdirSync, readFileSync, statSync } from "node:fs";
-import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join, dirname, relative, sep } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "../src");
-const catalog = (await import(join(root, "lib/locales/zh-CN.js"))).default;
+const catalog = (await import(pathToFileURL(join(root, "lib/locales/zh-CN.js")))).default;
 
 const files = (dir) =>
   readdirSync(dir).flatMap((name) => {
@@ -23,8 +23,8 @@ const names = (s) => [...s.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort().join(
 const problems = [];
 let used = 0;
 for (const file of files(root)) {
-  const relative = file.slice(root.length + 1);
-  if (relative.startsWith("lib/locales/")) continue;
+  const path = relative(root, file).split(sep).join("/");
+  if (path.startsWith("lib/locales/")) continue;
   const source = readFileSync(file, "utf8");
   const keys = [];
   for (const m of source.matchAll(CALL)) keys.push(m[1] ?? m[2] ?? m[3]);
@@ -34,12 +34,12 @@ for (const file of files(root)) {
   for (const raw of keys) {
     used++;
     const key = unescape(raw);
-    if (!(key in catalog)) problems.push(`${relative}: no translation for ${JSON.stringify(key)}`);
-    else if (names(key) !== names(catalog[key])) problems.push(`${relative}: placeholders differ in ${JSON.stringify(key)}`);
+    if (!(key in catalog)) problems.push(`${path}: no translation for ${JSON.stringify(key)}`);
+    else if (names(key) !== names(catalog[key])) problems.push(`${path}: placeholders differ in ${JSON.stringify(key)}`);
   }
   source.split("\n").forEach((line, i) => {
     if (/\p{Script=Han}/u.test(line) && !/name: "简体中文"/.test(line)) {
-      problems.push(`${relative}:${i + 1}: Chinese outside the locale files: ${line.trim().slice(0, 80)}`);
+      problems.push(`${path}:${i + 1}: Chinese outside the locale files: ${line.trim().slice(0, 80)}`);
     }
   });
 }
