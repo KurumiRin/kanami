@@ -1,0 +1,27 @@
+[package]
+name = "kanami-settings"
+description = "The kanami settings window"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[features]
+# Bundle the built frontend into the program; turned off for `tauri dev`, which connects to the Vite dev server instead
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+kanami-config.workspace = true
+kanami-core.workspace = true
+kanami-i18n.workspace = true
+kanami-ipc.workspace = true
+kanami-script.workspace = true
+serde.workspace = true
+serde_json = { workspace = true, features = ["preserve_order"] }
+tauri = { version = "2", features = [] }
+tauri-plugin-single-instance = "2"
+toml_edit = "0.25"
