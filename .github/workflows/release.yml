@@ -1,0 +1,80 @@
+name: Release
+
+# On a pushed v* tag, build the binaries for each platform and create a GitHub Release.
+# There is no Apple Developer account, so the macOS build is only ad-hoc signed and not notarized. See docs/releasing.md.
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: build (${{ matrix.target }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            target: aarch64-apple-darwin
+          - os: macos-latest
+            target: x86_64-apple-darwin
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+      - run: cargo build --release --locked -p kanami --target ${{ matrix.target }}
+
+      - name: Package (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          dir="kanami-${GITHUB_REF_NAME}-${{ matrix.target }}"
+          bin="target/${{ matrix.target }}/release/kanami"
+          codesign --force --sign - --identifier dev.kanami "$bin"
+          mkdir "$dir"
+          cp "$bin" README.md README.zh-CN.md CHANGELOG.md LICENSE-MIT LICENSE-APACHE config.example.toml "$dir"/
+          cp -R plugins examples schema "$dir"/
+          tar czf "$dir.tar.gz" "$dir"
+          shasum -a 256 "$dir.tar.gz" > "$dir.tar.gz.sha256"
+
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $dir = "kanami-$env:GITHUB_REF_NAME-${{ matrix.target }}"
+          New-Item -ItemType Directory $dir | Out-Null
+          Copy-Item "target/${{ matrix.target }}/release/kanami.exe", README.md, README.zh-CN.md, CHANGELOG.md, LICENSE-MIT, LICENSE-APACHE, config.example.toml $dir
+          Copy-Item -Recurse plugins, examples, schema $dir
+          Compress-Archive $dir "$dir.zip"
+          $hash = (Get-FileHash "$dir.zip" -Algorithm SHA256).Hash.ToLower()
+          "$hash  $dir.zip" | Out-File "$dir.zip.sha256" -Encoding ascii
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.target }}
+          path: kanami-*
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: kanami-*
+          generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
