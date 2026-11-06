@@ -1,0 +1,73 @@
+#:schema ../schema/kanami.schema.json
+# kanami script plugin example: Leader key, tap dance, text expansion.
+# The plugin sources are in the plugins/ directory; see docs/scripting.md for the script API.
+# Run the tests below with `kanami test -c examples/scripting.toml`.
+
+[script]
+files = ["../plugins/leader.luau", "../plugins/tap_dance.luau", "../plugins/expand.luau"]
+source = '''
+leader_map({
+    ["g h"] = function() kanami.run("open https://github.com") end,
+    ["w q"] = "cmd+q",
+    ["t"] = function() kanami.type("Keep up the good work!") end,
+})
+tap_dance("f13", { "escape", "cmd+q" })
+expand(";sig", "Best regards")
+'''
+
+# Right ⌥ as the Leader key
+[[rule]]
+from = "right_option"
+call = "leader"
+
+# ---- Leader ----
+
+[[test]]
+name = "Leader + T types a line of text"
+input = "right_option t"
+expect = '"Keep up the good work!"'
+
+[[test]]
+name = "Leader + W Q quits the app"
+input = "right_option w q"
+expect = "cmd+q"
+
+[[test]]
+name = "A key outside any sequence after Leader: cancels, and that key is swallowed"
+input = "right_option x a"
+expect = "a"
+
+[[test]]
+name = "Keys type normally after Leader times out"
+input = "right_option @1500 t"
+expect = "t"
+
+# ---- Tap dance ----
+
+[[test]]
+name = "F13 pressed once is Esc"
+input = "f13"
+expect = "escape"
+
+[[test]]
+name = "F13 pressed twice is ⌘Q"
+input = "f13 f13"
+expect = "cmd+q"
+
+[[test]]
+name = "Another key right after F13: Esc fires first, then that key is typed"
+input = "f13 a"
+expect = "escape a"
+
+# ---- Text expansion ----
+
+[[test]]
+name = "Typing ;sig expands to the signature"
+input = "semicolon s i g"
+expect = 'semicolon s i backspace backspace backspace "Best regards"'
+
+[[test]]
+name = "No expansion under a Chinese input method"
+input_source = "com.apple.inputmethod.SCIM.ITABC"
+input = "semicolon s i g"
+expect = "semicolon s i g"
