@@ -1,0 +1,11 @@
+[package]
+name = "kanami-ipc"
+description = "Local IPC for the kanami background service: address and client"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+kanami-i18n.workspace = true
+serde_json.workspace = true
