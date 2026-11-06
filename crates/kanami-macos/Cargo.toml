@@ -1,0 +1,11 @@
+[package]
+name = "kanami-macos"
+description = "kanami macOS backend: intercepts and rewrites keys with CGEventTap"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+kanami-core.workspace = true
+kanami-i18n.workspace = true
