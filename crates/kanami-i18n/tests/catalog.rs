@@ -48,7 +48,8 @@ fn messages() -> Vec<(PathBuf, String)> {
     files.retain(|file| !file.starts_with(&manifest));
     let mut found = Vec::new();
     for file in files {
-        let source = fs::read_to_string(&file).unwrap();
+        // rustc normalizes line endings before compiling, and a Windows checkout has CRLF.
+        let source = fs::read_to_string(&file).unwrap().replace("\r\n", "\n");
         for (start, _) in source.match_indices("tr!(") {
             // Skip longer macro names such as `include_str!(`.
             let name_char = |c: char| c.is_alphanumeric() || c == '_';
