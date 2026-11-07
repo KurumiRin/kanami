@@ -1,4 +1,4 @@
-//! HID-level mapping for Caps Lock.
+//! HID-level mapping and lock state for Caps Lock.
 //!
 //! Caps Lock toggles at the HID level, where a `CGEventTap` cannot stop it. To use Caps Lock as a
 //! trigger key, `hidutil` first makes the system send it as F18 (F18 has no lock function), and the
@@ -12,8 +12,10 @@
 //! before this mapping. `hidutil` cannot see them, so they are read separately from the global
 //! preferences.
 
+use std::ffi::{c_char, c_void};
 use std::io::{self, Read};
 use std::process::{Child, Command, Stdio};
+use std::sync::OnceLock;
 
 /// The guard process's hidden subcommand; the command-line entry point calls [`guard_main`] when it receives it.
 pub const GUARD_COMMAND: &str = "__caps-guard";
@@ -84,6 +86,55 @@ impl CapsMapping {
         }
         result
     }
+}
+
+#[link(name = "IOKit", kind = "framework")]
+unsafe extern "C" {
+    static mach_task_self_: u32;
+    fn IOServiceMatching(name: *const c_char) -> *mut c_void;
+    fn IOServiceGetMatchingService(main_port: u32, matching: *mut c_void) -> u32;
+    fn IOServiceOpen(service: u32, task: u32, kind: u32, connect: *mut u32) -> i32;
+    fn IOObjectRelease(object: u32) -> i32;
+    fn IOHIDGetModifierLockState(connect: u32, selector: i32, state: *mut bool) -> i32;
+    fn IOHIDSetModifierLockState(connect: u32, selector: i32, state: bool) -> i32;
+}
+
+const IOHID_PARAM_CONNECT: u32 = 1;
+const IOHID_CAPS_LOCK_STATE: i32 = 1;
+
+fn iokit_error(code: i32) -> io::Error {
+    io::Error::other(format!("IOKit {code:#x}"))
+}
+
+/// Toggles Caps Lock and returns the new state. A synthesized key event only looks like Caps Lock
+/// to apps and leaves the lock state alone, so this sets the state in the HID system directly.
+pub fn toggle_caps_lock() -> io::Result<bool> {
+    static CONNECT: OnceLock<Result<u32, i32>> = OnceLock::new();
+    let connect = (*CONNECT.get_or_init(|| unsafe {
+        let matching = IOServiceMatching(c"IOHIDSystem".as_ptr());
+        let service = IOServiceGetMatchingService(0, matching);
+        let mut connect = 0;
+        let result = IOServiceOpen(service, mach_task_self_, IOHID_PARAM_CONNECT, &mut connect);
+        IOObjectRelease(service);
+        if result == 0 {
+            Ok(connect)
+        } else {
+            Err(result)
+        }
+    }))
+    .map_err(iokit_error)?;
+    let mut on = false;
+    unsafe {
+        let result = IOHIDGetModifierLockState(connect, IOHID_CAPS_LOCK_STATE, &mut on);
+        if result != 0 {
+            return Err(iokit_error(result));
+        }
+        let result = IOHIDSetModifierLockState(connect, IOHID_CAPS_LOCK_STATE, !on);
+        if result != 0 {
+            return Err(iokit_error(result));
+        }
+    }
+    Ok(!on)
 }
 
 /// Guard process entry point: detaches from kanami's process tree and undoes the mapping once the pipe closes.
@@ -258,6 +309,16 @@ fn set(mapping: Option<(u64, u64)>) -> io::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Changes the real Caps Lock state for a moment, so it only runs on request:
+    /// `cargo test -p kanami-macos -- --ignored`
+    #[test]
+    #[ignore]
+    fn toggles_caps_lock_and_back() {
+        let first = toggle_caps_lock().unwrap();
+        let second = toggle_caps_lock().unwrap();
+        assert_ne!(first, second);
+    }
 
     #[test]
     fn classifies_hidutil_output() {

@@ -2,8 +2,8 @@
 
 pub const ENTRIES: &[(&str, &str)] = &[
     (
-        "caps_lock cannot be used as an output",
-        "caps_lock 不能作为输出",
+        "Toggling Caps Lock failed: {error}",
+        "切换大小写锁定失败：{error}",
     ),
     (
         "The from of a tap/hold rule must be a single key without modifiers",
@@ -206,10 +206,6 @@ pub const ENTRIES: &[(&str, &str)] = &[
     (
         "This kanami function can only be used inside a callback (not while a script is loading)",
         "kanami 的这个函数只能在回调里使用（加载脚本时不能调用）",
-    ),
-    (
-        "caps_lock cannot be used as output",
-        "caps_lock 不能作为输出",
     ),
     ("Layer {name} does not exist", "图层 {name} 不存在"),
     ("[script] {message}", "[脚本] {message}"),

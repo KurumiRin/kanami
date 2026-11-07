@@ -8,7 +8,7 @@ use kanami_core::{Key, KeyEvent, KeyState, ModSet, Out};
 
 use crate::devices::Tracker;
 use crate::ffi::*;
-use crate::hid::CapsMapping;
+use crate::hid::{self, CapsMapping};
 use crate::{app, input, keycode};
 
 #[derive(Debug)]
@@ -507,6 +507,7 @@ unsafe extern "C" fn tap_callback<H: Handler>(
         && out.texts.is_empty()
         && only.key == key
         && only.state == state
+        && key != Key::CapsLock
     {
         // The most common case: pass through unchanged, only correcting the modifier flag bits
         let fixed =
@@ -585,11 +586,25 @@ unsafe fn input_callback<H: Handler>(info: *mut c_void, id: Option<&str>) {
 }
 
 /// Posts keys and text in order (text goes at the position it recorded).
-fn post_out(out: &Out, keyboard_type: i64, alpha_shift: CGEventFlags) {
+fn post_out(out: &Out, keyboard_type: i64, mut alpha_shift: CGEventFlags) {
     let mut texts = out.texts.iter().peekable();
     for (i, &event) in out.keys.iter().enumerate() {
         while let Some((_, text)) = texts.next_if(|(at, _)| *at == i) {
             post_text(text, keyboard_type);
+        }
+        if event.key == Key::CapsLock {
+            // Like the real key, it toggles when pressed
+            if event.state == KeyState::Down {
+                match hid::toggle_caps_lock() {
+                    Ok(true) => alpha_shift = kCGEventFlagMaskAlphaShift,
+                    Ok(false) => alpha_shift = 0,
+                    Err(e) => warn(&kanami_i18n::tr!(
+                        "Toggling Caps Lock failed: {error}",
+                        error = e
+                    )),
+                }
+            }
+            continue;
         }
         post(event, keyboard_type, alpha_shift);
     }
