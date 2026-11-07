@@ -7,6 +7,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ### Added
 
 - English and Simplified Chinese UI. The language comes from `settings.language` (`"en"` or `"zh-CN"`), then the `KANAMI_LANG` environment variable, then the first supported system language, then English. The tray relabels when the configuration reloads. The new `kanami-i18n` crate holds the message catalog.
+- `caps_lock` can be an output, so Caps Lock and Control can be swapped in `[remap]`. On macOS it toggles the lock state through the HID system.
 - Rule engine (M1):
   - Key expressions: `cmd+k`, `hyper+t`, `meh`, left/right-specific modifiers, `none`, key sequences.
   - `[remap]` supports modifiers and modifier combinations (such as `caps_lock = "hyper"`).

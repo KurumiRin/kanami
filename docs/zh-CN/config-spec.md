@@ -106,6 +106,13 @@ f1 = "none"
 - 左边只能是单个键；右边可以是单个键、修饰键组合（如 `hyper`）或 `none`。
 - 不支持条件，永远生效。要按 App 生效请用 `[[rule]]`。
 - 修饰键保留规则同上：`a = "b"` 时 ⇧A → ⇧B。
+- `caps_lock` 可以作为输出，按下时切换大小写锁定，和真实按键一样。要互换 Caps Lock 和左 Control，两个方向都写上：
+
+```toml
+[remap]
+caps_lock = "left_control"
+left_control = "caps_lock"
+```
 
 ---
 

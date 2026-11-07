@@ -106,6 +106,13 @@ Rules:
 - The left side must be a single key. The right side can be a single key, a modifier combination (such as `hyper`) or `none`.
 - Conditions are not supported; a remap is always active. For per-app behavior, use `[[rule]]`.
 - Modifiers are kept as described above: with `a = "b"`, ⇧A → ⇧B.
+- `caps_lock` works as an output and toggles Caps Lock when pressed, like the real key. To swap Caps Lock and left Control, write both directions:
+
+```toml
+[remap]
+caps_lock = "left_control"
+left_control = "caps_lock"
+```
 
 ---
 
