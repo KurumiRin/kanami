@@ -185,6 +185,26 @@ fn remap_to_hyper() {
     assert!(h.take().iter().all(|&(_, s)| s == Release));
 }
 
+#[test]
+fn swap_caps_lock_and_control() {
+    let mut h = Harness::new(remaps(&[
+        (CapsLock, RemapTarget::Key(LeftControl)),
+        (LeftControl, RemapTarget::Key(CapsLock)),
+    ]));
+    assert_eq!(h.tap(LeftControl).take(), tapped(&[CapsLock]));
+
+    // The physical Control key adds no modifier, and Caps Lock adds Control.
+    let out = h.engine.process(KeyEvent::new(LeftControl, Press), 0);
+    assert_eq!(out.keys[0].key, CapsLock);
+    let out = h.engine.process(KeyEvent::new(A, Press), 0);
+    assert_eq!(out.keys[0].mods, ModSet::empty());
+    h.engine.process(KeyEvent::new(A, Release), 0);
+    h.engine.process(KeyEvent::new(LeftControl, Release), 0);
+    h.engine.process(KeyEvent::new(CapsLock, Press), 0);
+    let out = h.engine.process(KeyEvent::new(A, Press), 0);
+    assert_eq!(out.keys[0].mods, ModSet::LEFT_CONTROL);
+}
+
 // ---- Rules ----
 
 #[test]
@@ -694,12 +714,6 @@ fn repeats_follow_mapping() {
 
 #[test]
 fn rejects_invalid_rules() {
-    let caps_out = remaps(&[(A, RemapTarget::Key(CapsLock))]);
-    assert_eq!(
-        Engine::new(&caps_out).err().unwrap().kind,
-        RuleErrorKind::CapsLockOutput
-    );
-
     let chord_tap_hold = Rules {
         rules: vec![rule(
             Trigger {

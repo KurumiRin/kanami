@@ -258,14 +258,9 @@ fn install_api(lua: &Lua, shared: &Rc<Shared>, log: &Rc<Log>) -> mlua::Result<()
             }
             with(&s, |api| {
                 for chord in chords {
-                    if !api.tap(chord) {
-                        return Err(mlua::Error::runtime(kanami_i18n::tr!(
-                            "caps_lock cannot be used as output"
-                        )));
-                    }
+                    api.tap(chord);
                 }
-                Ok(())
-            })?
+            })
         })?,
     )?;
 

@@ -522,12 +522,8 @@ impl Engine {
                 self.exclusive |= 1 << i;
             }
         }
-        for (i, remap) in rules.remaps.iter().enumerate() {
-            let at = Location::Remap(i);
+        for remap in &rules.remaps {
             let slot = match remap.to {
-                RemapTarget::Key(Key::CapsLock) => {
-                    return Err(err(at, RuleErrorKind::CapsLockOutput));
-                }
                 RemapTarget::Key(key) => Remapped::Key(key),
                 RemapTarget::Mods(mods) => Remapped::Mods(mods),
                 RemapTarget::Disable => Remapped::Disable,
@@ -559,7 +555,7 @@ impl Engine {
                     }
                     Body::TapHold(TapHoldSpec {
                         tap: self.act(&th.tap, at)?,
-                        hold: Hold::Chord(normalize(th.hold, at)?),
+                        hold: Hold::Chord(normalize(th.hold)),
                         strategy: th.strategy,
                     })
                 }
@@ -665,8 +661,7 @@ impl Engine {
                 }
                 let start = self.chords.len() as u16;
                 for &chord in chords {
-                    let chord = normalize(chord, at)?;
-                    self.chords.push(chord);
+                    self.chords.push(normalize(chord));
                 }
                 Act::Keys {
                     start,
@@ -1264,15 +1259,9 @@ fn find(list: &[Box<str>], name: &str) -> Option<u16> {
 pub struct Api<'a>(&'a mut Engine);
 
 impl Api<'_> {
-    /// Taps a key expression. `caps_lock` cannot be output and returns `false`.
-    pub fn tap(&mut self, chord: Chord) -> bool {
-        match normalize(chord, Location::Rule(0)) {
-            Ok(chord) => {
-                self.0.tap_chord(chord, ModSet::empty());
-                true
-            }
-            Err(_) => false,
-        }
+    /// Taps a key expression.
+    pub fn tap(&mut self, chord: Chord) {
+        self.0.tap_chord(normalize(chord), ModSet::empty());
     }
 
     /// Types a piece of text (any Unicode, independent of keyboard layout and input method).
@@ -1346,14 +1335,10 @@ impl Api<'_> {
 }
 
 /// Modifiers in output all go into `mods`; `key` keeps only ordinary keys.
-fn normalize(chord: Chord, at: Location) -> Result<Chord, RuleError> {
-    match chord.key {
-        Some(Key::CapsLock) => Err(err(at, RuleErrorKind::CapsLockOutput)),
-        Some(key) => Ok(match ModSet::of_key(key) {
-            Some(mods) => Chord::mods(chord.mods.union(mods)),
-            None => chord,
-        }),
-        None => Ok(chord),
+fn normalize(chord: Chord) -> Chord {
+    match chord.key.and_then(ModSet::of_key) {
+        Some(mods) => Chord::mods(chord.mods.union(mods)),
+        None => chord,
     }
 }
 

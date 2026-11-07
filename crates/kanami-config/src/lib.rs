@@ -96,7 +96,6 @@ pub fn parse_in(src: &str, base: Option<&Path>) -> Result<Config, ConfigError> {
 /// Where each rule sits in the source file, used to map engine validation errors back to it.
 #[derive(Default)]
 struct Spans {
-    remap: Vec<Range<usize>>,
     rule: Vec<Range<usize>>,
     layer: Vec<Range<usize>>,
     combo: Vec<Range<usize>>,
@@ -154,7 +153,6 @@ impl Builder<'_> {
                     to: self.at(to, expr::remap_target)?,
                     device,
                 });
-                self.spans.remap.push(from.span());
             }
         }
 
@@ -200,7 +198,6 @@ impl Builder<'_> {
         };
         if let Err(e) = Engine::new(&rules) {
             let spans = match e.at {
-                Location::Remap(i) => self.spans.remap.get(i),
                 Location::Rule(i) => self.spans.rule.get(i),
                 Location::Layer(i) => self.spans.layer.get(i),
                 Location::Combo(i) => self.spans.combo.get(i),

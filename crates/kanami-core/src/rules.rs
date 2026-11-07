@@ -193,7 +193,6 @@ pub struct Rules {
 /// Where the faulty rule is in [`Rules`], which the config layer uses to locate it in the source file.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Location {
-    Remap(usize),
     Rule(usize),
     Layer(usize),
     Combo(usize),
@@ -201,7 +200,6 @@ pub enum Location {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum RuleErrorKind {
-    CapsLockOutput,
     TapHoldNeedsBareKey,
     DuplicateLayerTrigger(Key),
     EmptyKeys,
@@ -221,9 +219,6 @@ pub struct RuleError {
 impl fmt::Display for RuleErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            RuleErrorKind::CapsLockOutput => {
-                f.write_str(&tr!("caps_lock cannot be used as an output"))
-            }
             RuleErrorKind::TapHoldNeedsBareKey => f.write_str(&tr!(
                 "The from of a tap/hold rule must be a single key without modifiers"
             )),

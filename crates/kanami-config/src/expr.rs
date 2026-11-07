@@ -154,9 +154,6 @@ pub fn output(expr: &str) -> Result<Option<Chord>, String> {
         return Ok(None);
     }
     let parsed = parse(expr)?;
-    if parsed.key == Some(Key::CapsLock) {
-        return Err(tr!("caps_lock cannot be used as an output"));
-    }
     Ok(Some(Chord {
         mods: parsed.mods.emit,
         key: parsed.key,
@@ -187,7 +184,6 @@ pub fn remap_target(expr: &str) -> Result<RemapTarget, String> {
     }
     let parsed = parse(expr)?;
     match (parsed.has_mods, parsed.key) {
-        (_, Some(Key::CapsLock)) => Err(tr!("caps_lock cannot be used as an output")),
         (false, Some(key)) => Ok(RemapTarget::Key(key)),
         (_, None) => Ok(RemapTarget::Mods(parsed.mods.emit)),
         (true, Some(_)) => Err(tr!(
@@ -314,7 +310,10 @@ mod tests {
             Some(Chord::mods(ModSet::MEH.union(ModSet::RIGHT_OPTION)))
         );
         assert_eq!(output("none").unwrap(), None);
-        assert!(output("caps_lock").is_err());
+        assert_eq!(
+            output("caps_lock").unwrap(),
+            Some(Chord::key(Key::CapsLock))
+        );
     }
 
     #[test]
